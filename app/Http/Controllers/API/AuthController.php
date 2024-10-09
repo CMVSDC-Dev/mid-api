@@ -42,7 +42,7 @@ class AuthController extends Controller implements HasMiddleware
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function me()
+    public function profile()
     {
         return response()->json(auth('api')->user());
     }
