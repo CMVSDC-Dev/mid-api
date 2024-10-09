@@ -25,7 +25,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // $table->foreign('member_id')->references('Id')->on('Members')->noActionOnDelete();
+            $table->foreign('member_id')->references('Id')->on('Members')->noActionOnDelete();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

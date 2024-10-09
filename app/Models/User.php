@@ -4,14 +4,18 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Notifications\Notifiable;
+use OwenIt\Auditing\Contracts\Auditable;
+use OwenIt\Auditing\Auditable as AuditableTrait;
 use PHPOpenSourceSaver\JWTAuth\Contracts\JWTSubject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class User extends Authenticatable implements JWTSubject
+class User extends Authenticatable implements JWTSubject, Auditable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable, AuditableTrait;
 
     /**
      * The attributes that are mass assignable.
@@ -24,6 +28,7 @@ class User extends Authenticatable implements JWTSubject
         'password',
         'jwt_secret',
         'member_id',
+        'company_id',
         'last_active_at',
         'is_active',
     ];
@@ -35,6 +40,17 @@ class User extends Authenticatable implements JWTSubject
      */
     protected $hidden = [
         'password',
+        'remember_token',
+    ];
+
+    /**
+     * Attributes to exclude from the Audit.
+     *
+     * @var array
+     */
+    protected $auditExclude = [
+        'last_active_at',
+        'is_active',
         'remember_token',
     ];
 
@@ -52,6 +68,10 @@ class User extends Authenticatable implements JWTSubject
             'is_active' => 'boolean',
         ];
     }
+
+    protected $appends = ['company_name'];
+
+    protected $with = ['roles'];
 
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.
@@ -81,5 +101,21 @@ class User extends Authenticatable implements JWTSubject
     {
         $this->jwt_secret = Str::random(32);
         $this->save();
+    }
+
+    public function getCompanyNameAttribute()
+    {
+        $member = $this->member()->first();
+        return $member->CompanyName ?? null;
+    }
+
+    // public function company()
+    // {
+    //     return $this->belongsTo(Company::class, 'company_id', 'Id');
+    // }
+
+    public function member()
+    {
+        return $this->belongsTo(Member::class, 'member_id', 'Id');
     }
 }

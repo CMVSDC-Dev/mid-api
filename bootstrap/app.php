@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // $middleware->web(append: [
         //     \App\Http\Middleware\TrackLastActiveAt::class,
         // ]);
+
+        $middleware->alias([
+            'custom.auth' => \App\Http\Middleware\CustomAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (AuthenticationException $e, Request $request) {

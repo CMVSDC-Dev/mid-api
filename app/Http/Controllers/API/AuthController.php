@@ -2,39 +2,24 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\API\BaseController as BaseController;
-use App\Models\User;
-use Validator;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 
-class AuthController extends BaseController
+class AuthController extends Controller implements HasMiddleware
 {
 
     /**
-     * Register a User.
-     *
-     * @return \Illuminate\Http\JsonResponse
+     * Get the middleware that should be assigned to the controller.
      */
-    public function register(Request $request) {
-
-        $validator = Validator::make($request->all(), [
-            'name' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|confirmed'
-        ]);
-
-        if($validator->fails()){
-            return $this->sendError('Validation Error.', $validator->errors());
-        }
-
-        $input = $request->all();
-        $input['password'] = bcrypt($input['password']);
-        $user = User::create($input);
-        $success['user'] =  $user;
-
-        return $this->sendResponse($success, 'User register successfully.');
+    public static function middleware(): array
+    {
+        return [
+            'api',
+            new Middleware('auth:api', except: ['login', 'register']),
+        ];
     }
-
 
     /**
      * Get a JWT via given credentials.
@@ -45,13 +30,11 @@ class AuthController extends BaseController
     {
         $credentials = request(['email', 'password']);
 
-        if (! $token = auth()->attempt($credentials)) {
-            return $this->sendError('Unauthorized.', ['error'=>'Unauthorized']);
+        if (! $token = auth('api')->attempt($credentials)) {
+            return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $success = $this->respondWithToken($token);
-
-        return $this->sendResponse($success, 'User login successfully.');
+        return $this->respondWithToken($token);
     }
 
     /**
@@ -59,11 +42,9 @@ class AuthController extends BaseController
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function profile()
+    public function me()
     {
-        $success = auth()->user();
-
-        return $this->sendResponse($success, 'Refresh token return successfully.');
+        return response()->json(auth('api')->user());
     }
 
     /**
@@ -73,9 +54,9 @@ class AuthController extends BaseController
      */
     public function logout()
     {
-        auth()->logout();
+        auth('api')->logout();
 
-        return $this->sendResponse([], 'Successfully logged out.');
+        return response()->json(['message' => 'Successfully logged out']);
     }
 
     /**
@@ -85,9 +66,7 @@ class AuthController extends BaseController
      */
     public function refresh()
     {
-        $success = $this->respondWithToken(auth()->refresh());
-
-        return $this->sendResponse($success, 'Refresh token return successfully.');
+        return $this->respondWithToken(auth('api')->refresh());
     }
 
     /**
@@ -99,10 +78,11 @@ class AuthController extends BaseController
      */
     protected function respondWithToken($token)
     {
-        return [
-            'access_token' => $token,
+        return response()->json([
+            'user' => auth('api')->user(),
+            'token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 60
-        ];
+            'expires_in' => auth('api')->factory()->getTTL() * 60  // ensure 'api' guard is used here
+        ]);
     }
 }
