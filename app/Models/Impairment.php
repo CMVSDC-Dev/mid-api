@@ -64,13 +64,20 @@ class Impairment extends Model implements Auditable
     public function getImpairmentDescriptionAttribute()
     {
         $description = $this->code()->pluck('Description')->first();
-        return empty($this->ImpairmentCodes) || $this->ImpairmentCodes == 'NA-'
-            ? 'Old Impairment'
-            : $description;
-    }
+        return empty($this->ImpairmentCodes)
+            || $this->ImpairmentCodes == 'NA-'
+            || $this->entry()->Gender == 'C'
+                ? 'Old Impairment'
+                : $description;
+        }
 
     public function code()
     {
         return $this->hasOne(ImpairmentCode::class, 'Id', 'ImpairmentCodeId');
+    }
+
+    public function entry()
+    {
+        return $this->belongsTo(Entry::class, 'MibEntryId', 'Id');
     }
 }
